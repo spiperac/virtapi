@@ -1,0 +1,12 @@
+- {iso: 'https://cloud-images.ubuntu.com/trusty/current/trusty-server-cloudimg-amd64-disk1.img',
+  name: ubuntu14.04, os: ubuntu, version: 14.04}
+- {iso: 'https://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img',
+  name: ubuntu16.04, os: ubuntu, version: 16.04}
+- {iso: 'https://download.fedoraproject.org/pub/fedora/linux/releases/24/CloudImages/x86_64/images/Fedora-Cloud-Base-24-1.2.x86_64.qcow2',
+  name: fedora24, os: fedora, version: 24}
+- {iso: 'http://gentoo.osuosl.org/experimental/amd64/openstack/gentoo-openstack-amd64-default-20170122.qcow2',
+  name: gentoo1, os: gentoo, version: 1}
+- {iso: 'https://linuximages.de/openstack/arch/arch-openstack-LATEST-image-bootstrap.qcow2',
+  name: arch, os: arch, version: latest}
+- {iso: 'http://192.168.0.12/protostar.qcow2', name: protostar, os: protostar, version: '1'}
+- {iso: 'http://192.168.0.12/protostar.qcow2', name: protostart, os: protostar, version: '11'}

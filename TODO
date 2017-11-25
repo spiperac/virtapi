@@ -1,0 +1,10 @@
+#1	Template init method which will download and create all templates defined in templates.yml file 
+#2	Disks remove from instance - delete_disk implemented in host_ctrl.py
+#3	Make/remove snapshots
+#4	Create hypervisor unique IDs
+#5	Add logger  - added basic logging
+#6	Think about integrating diffrent method outputs method (json, text, raw), which defaults to RAW if not specified
+#7	Update RAM, VCPU of the domain
+#8	Resize size of volume of domain
+#9  Create concept of Cluster Create functionality	
+#10 Network Interface and Storage Models!!!

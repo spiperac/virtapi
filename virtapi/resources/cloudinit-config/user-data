@@ -1,0 +1,8 @@
+#cloud-config
+name: va-user
+user: va-user
+password: virtpass
+chpasswd: { expire: False }
+ssh_pwauth: True
+runcmd:
+- [ 'sh', '-c', 'echo "Hello World from VirtualShip" > /tmp/hacked.txt']

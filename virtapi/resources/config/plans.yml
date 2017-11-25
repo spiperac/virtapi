@@ -1,0 +1,5 @@
+- {diskSize: 5, name: small, ram: 1, vcpu: 1}
+- {diskSize: 10, name: medium, ram: 2, vcpu: 2}
+- {diskSize: 15, name: big, ram: 3, vcpu: 2}
+- {diskSize: '20', name: custom-big, ram: '4', vcpu: '2'}
+- {diskSize: '4', name: very-small, ram: '0.1', vcpu: '1'}

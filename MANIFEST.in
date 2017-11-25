@@ -1,0 +1,4 @@
+include README.rst
+include virtapi/resources/config/*
+include virtapi/resources/cloudinit-config/*
+include virtapi/resources/keys/*

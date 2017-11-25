@@ -1,0 +1,505 @@
+#!/usr/bin/env python
+
+"""
+VirtAPI Cli utility.
+__author__ = Strahinja Piperac <spiperac@denkei.org>
+"""
+
+import os, argparse, sys, random, time, json
+from prettytable import PrettyTable
+
+from virtapi.controller.domain_ctrl import VirtDomain
+from virtapi.controller.host_ctrl import VirtHost
+from virtapi.model.template import Templates
+from virtapi.api import VirtAPI
+from virtapi.settings import SETTINGS, LOGO
+from virtapi.utilities import generate_ssh_key, create_config, pretty_mem, pretty_bytes
+
+# Registring an VirtAPI object
+virtcli = VirtAPI()
+    
+def get_connection():
+    status = virtcli.VirtHost.connect()
+    if status is False:
+        print('[-] Not connected to the host [-]')
+        sys.exit(0)
+
+def main():
+    parser = argparse.ArgumentParser(description=' {} \n  VirtAPI Cli tool.'.format(LOGO), formatter_class=argparse.RawDescriptionHelpFormatter)
+    subparsers = parser.add_subparsers(help='sub-command help', dest='command')
+
+    # Parser for Initialization
+
+    parser_init = subparsers.add_parser('init', help='Clean up VirtAPI state. BE AWARE THIS WILL REMOVE VIRTAPI GENERATED SSH KEY.')
+
+    # Parser for Host
+    parser_host = subparsers.add_parser('host', help='Host commands')
+    parser_host_subparsers = parser_host.add_subparsers(dest='sub_command')
+
+    parser_host_key = parser_host_subparsers.add_parser('key', help='Host key management.')
+    parser_host_key.add_argument('--add-key', action='store', type=str)
+    parser_host_key.set_defaults(
+            sub_command='key',
+            key=None,
+            )
+
+
+    parser_host_report = parser_host_subparsers.add_parser('report', help='Print report from Host system.')
+    parser_host_report.set_defaults(
+            sub_command='report'
+            )
+
+    parser_host_add = parser_host_subparsers.add_parser('add', help='Adds new host to the host list.')
+    parser_host_add.set_defaults(
+            sub_command='add'
+            )
+
+    parser_host_delete = parser_host_subparsers.add_parser('delete', help='Delete host from the host list.')
+    parser_host_delete.add_argument('--name', action='store', type=str)
+    parser_host_delete.set_defaults(
+            sub_command='delete',
+            name=None,
+            )
+
+    parser_host_list = parser_host_subparsers.add_parser('list', help='List all defined hosts available.')
+    parser_host_list.set_defaults(
+            sub_command='list'
+            )
+    
+    parser_host_connect = parser_host_subparsers.add_parser('connect', help='Activate specific host.')
+    parser_host_connect.add_argument('--name', action='store', type=str)
+    parser_host_connect.add_argument('--key', action='store', type=str)
+    parser_host_connect.set_defaults(
+            sub_command='connect',
+            key=False,
+            )
+    
+    
+    parser_host.set_defaults(
+            command='host',
+            )
+   
+    # Parser for Domain
+    parser_domain = subparsers.add_parser('domain', help='Domain commands')
+    parser_domain_subparsers = parser_domain.add_subparsers(dest='sub_command')
+    parser_domain_create = parser_domain_subparsers.add_parser('create', help='Create new domain from template.')
+    parser_domain_create.add_argument('-t', '--template', action='store', type=str, help='Base template for new domain instance.')
+    parser_domain_create.add_argument('-n', '--name', action='store', type=str, help='Name for a new domain.')
+    parser_domain_create.add_argument('-p', '--plan', action='store', type=str, help='Plan name for new domain instance.')
+    
+    parser_domain_create.set_defaults(
+            sub_command='create',
+            name=None,
+            plan='small'
+            )
+
+    parser_domain_clone = parser_domain_subparsers.add_parser('clone', help='Clone domain from existing one.')
+    parser_domain_clone.add_argument('-t', '--template', action='store', type=str, help='Base template for new domain clone instance.')
+    parser_domain_clone.add_argument('-n', '--name', action='store', type=str, help='Name for a new domain.')
+    
+    parser_domain_clone.set_defaults(
+            sub_command='clone',
+            name=None,
+            template=None
+        )
+    
+    parser_domain_delete = parser_domain_subparsers.add_parser('delete', help='Delete existing domain and data.')
+    parser_domain_delete.add_argument('-n', '--name', action='store', type=str, help='Name of the domain for deleting.')
+    parser_domain_delete.set_defaults(
+            sub_command='delete',
+            name=None
+            )
+
+    parser_domain_info = parser_domain_subparsers.add_parser('info', help='Shows existing domain and data.')
+    parser_domain_info.add_argument('-n', '--name', action='store', type=str, help='Name of the domain.')
+    parser_domain_info.set_defaults(
+            sub_command='info',
+            name=None
+            )
+    
+    parser_domain_delete = parser_domain_subparsers.add_parser('list', help='List existing domain and data.')
+    parser_domain_delete.set_defaults(
+            sub_command='list',
+            )
+    
+    # Pool controll parsers
+
+    parser_pool = subparsers.add_parser('pool', help='Pool commands')
+    parser_pool_subparsers = parser_pool.add_subparsers(dest='sub_command')
+
+    parser_pool_create = parser_pool_subparsers.add_parser('create', help='Creates new pool.')
+    parser_pool_create.add_argument('-n', '--name', action='store', type=str, help='Name of new pool.')
+    parser_pool_create.set_defaults(
+            sub_command='create',
+            name=None
+            )
+
+    parser_pool_delete = parser_pool_subparsers.add_parser('delete', help='Deletes pool.')
+    parser_pool_delete.add_argument('-n', '--name', action='store', type=str, help='Name of the pool.')
+    parser_pool_delete.set_defaults(
+            sub_command='delete',
+            name=None
+            )
+
+    parser_pool_start = parser_pool_subparsers.add_parser('start', help='Starts given pool.')
+    parser_pool_start.add_argument('-n', '--name', action='store', type=str, help='Name of the pool.')
+    parser_pool_start.set_defaults(
+            sub_command='start',
+            name=None
+            )   
+
+    parser_pool_stop = parser_pool_subparsers.add_parser('stop', help='Stops given pool.')
+    parser_pool_stop.add_argument('-n', '--name', action='store', type=str, help='Name of the pool.')
+    parser_pool_stop.set_defaults(
+            sub_command='stop',
+            name=None
+            )
+
+    parser_pool_list = parser_pool_subparsers.add_parser('list', help='List allpools.')
+    
+
+    # Domain controll parsers
+    
+    parser_domain_start = parser_domain_subparsers.add_parser('start', help='Power ON domain.')
+    parser_domain_start.add_argument('-n', '--name', action='store', type=str, help='Name of the domain.')
+    parser_domain_start.set_defaults(
+            sub_command='start',
+            name=None
+            )
+
+    parser_domain_stop = parser_domain_subparsers.add_parser('stop', help='Power OFF domain.')
+    parser_domain_stop.add_argument('-n', '--name', action='store', type=str, help='Name of the domain.')
+    parser_domain_stop.set_defaults(
+            sub_command='stop',
+            name=None
+            )
+
+    parser_domain_reboot = parser_domain_subparsers.add_parser('reboot', help='Reboots domain.')
+    parser_domain_reboot.add_argument('-n', '--name', action='store', type=str, help='Name of the domain.')
+    parser_domain_reboot.set_defaults(
+            sub_command='reboot',
+            name=None
+            )   
+    
+    # Parser for storage disks
+    parser_disks = subparsers.add_parser('disk', help='Storage disks commands.')
+    parser_disks_subparsers = parser_disks.add_subparsers(dest='sub_command')
+
+    parser_disks_add = parser_disks_subparsers.add_parser('add', help='Create and attach new disk device to existing VM.')
+    parser_disks_add.add_argument('-n','--name', action='store', type=str, help='Name of the domain.')
+    parser_disks_add.add_argument('-s','--size', action='store', type=str, help='Size of the storage.')
+    parser_disks_add.add_argument('-p','--pool', action='store', type=str, help='Name of the pool.') # TODO: Remove pool selection, instead select the pool by main volume pool of the domain    
+    
+    parser_disks_add.set_defaults(
+            sub_command='add',
+            name=None,
+            size=7,
+            pool='default'
+            )
+
+    parser_disks.set_defaults(
+            command='disk'
+            )
+
+    # Parser for Templates
+    parser_templates = subparsers.add_parser('template', help='Templates commands')
+    parser_templates_subparsers = parser_templates.add_subparsers(dest='sub_command')
+    
+
+    parser_templates_list = parser_templates_subparsers.add_parser('list', help='List existing templates.')
+    parser_templates_add = parser_templates_subparsers.add_parser('add', help='Add new template directly from the cli.')
+    parser_templates_delete = parser_templates_subparsers.add_parser('delete', help='Delete template directly from the cli.')
+    parser_templates_delete.add_argument('-n', '--name', action='store', type=str, help='Name of template for deleting.')
+
+    parser_templates.set_defaults(
+            command='template',
+            )
+
+    parser_templates_list.set_defaults(
+            sub_command='list'
+            )
+    
+    parser_templates_add.set_defaults(
+            sub_command='add'
+            )
+
+    parser_templates_delete.set_defaults(
+            sub_command='delete',
+            name=None
+            )
+   
+    # Parser for Plans
+    parser_plans = subparsers.add_parser('plan', help='Templates commands')
+    parser_plans_subparsers = parser_plans.add_subparsers(dest='sub_command')
+
+    parser_plans_list = parser_plans_subparsers.add_parser('list', help='List existing plans.')
+    parser_plans_add = parser_plans_subparsers.add_parser('add', help='Add a new plan.')
+    parser_plans_delete = parser_plans_subparsers.add_parser('delete', help='Delete selected plan.')
+    parser_plans_delete.add_argument('-n', '--name', action='store', type=str, help='Name of the plan for deletion.')
+
+    parser_plans_list.set_defaults(
+            sub_command='list'
+            )
+
+    parser_plans_add.set_defaults(
+            sub_command='add'
+            )
+    
+    parser_plans_delete.set_defaults(
+            sub_command='delete',
+            name=None
+            )
+
+    parser_plans.set_defaults(
+            command='plan',
+            )
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+    
+    args = parser.parse_args()
+
+    # Handling Initialization
+
+    if args.command == 'init':
+        print('[+] Creating configuration directory [+]')
+        create_config()
+        print('[+] Reseting VirtAPI SSH key. [+]')
+        generate_ssh_key()        
+
+    # Handling Host
+
+    if args.command == 'host':
+
+        if args.sub_command == 'add':
+            host = {}
+            host['name'] = raw_input('Name: ')
+            host['connection'] = raw_input('Connection/Host/Ip: ')
+            host['protocol'] = raw_input('Prtocol ( recommended leave empty!): ')
+            host['username'] = raw_input('Username: ')
+            host['password'] = raw_input('Password: ')
+            host['key'] = raw_input('Host SSH key ( leave empty for VirtAPI default to be used): ')
+            host['active'] = False
+
+            if host['protocol'] is '':
+                host['protocol'] = 'ssh'
+            if host['key'] is '':
+                host['key'] = SETTINGS['DEFAULTKEYFILE']
+
+            virtcli.Hosts.add_host(host)
+        
+        if args.sub_command == 'delete':
+            if args.name is None:
+                print('[-] Please enter host name [-]')
+            else:
+                virtcli.Hosts.delete_host(args.name)
+
+        if args.sub_command == 'report':
+            virtcli.VirtHost.connect()
+            virtcli.VirtHost.report()
+
+        if args.sub_command == 'list':
+            hosts = virtcli.Hosts.get_hosts()
+            t = PrettyTable(['Name', 'Connection', 'Protocol', 'Active'])
+            for host in hosts:
+                t.add_row([host['name'], host['connection'], host['protocol'], host['active']])
+            print(t)
+        
+        if args.sub_command == 'key':
+            if args.add_key:
+                print('[+] Adding a key to the host [+]')
+                virtcli.Hosts.add_key(args.add_key)
+
+        if args.sub_command == 'connect':
+            if args.name:
+                if not virtcli.Hosts.exists(args.name):
+                    print('[-] Host {} does not exist. [-]'.format(args.name))
+                elif args.key:
+                    if args.key == None:
+                        key_path = 'resources/keys/public.key'
+                    virtcli.Hosts.set_acrive(args.name, add_key=True, key_path=args.key)
+                else:
+                    virtcli.Hosts.set_active(args.name)
+    
+    # Handling Pools
+    
+    if args.command == 'pool':
+        if args.sub_command == 'create':
+            virtcli.VirtHost.connect()
+            virtcli.VirtHost.create_storage_pool(args.name)
+        
+        if args.sub_command == 'delete':
+            virtcli.VirtHost.connect()
+            virtcli.VirtHost.delete_storage_pool(args.name)
+
+        if args.sub_command == 'list':
+            virtcli.VirtHost.connect()
+            poolObjects = virtcli.VirtHost.get_all_storage_pools_objects()
+            t = PrettyTable(['Name', 'Autostart', 'No. Volumes', 'Capacity', 'Allocated', 'Available', 'Active'])
+            for poolObj in poolObjects:
+                info = poolObj.info()
+                t.add_row([str(poolObj.name()), str(poolObj.autostart()), str(poolObj.numOfVolumes()),
+                        pretty_bytes(str(info[1])),
+                        pretty_bytes(str(info[2])),
+                        pretty_bytes(str(info[3])),
+                        str(poolObj.isActive())])
+            print(t)
+
+        if args.sub_command == 'start':
+            if args.name != None:
+                virtcli.VirtHost.connect()
+                virtcli.VirtHost.start_storage_pool(args.name)
+            else:
+                print("[-] Name of the pool not provided [-]")
+        
+        if args.sub_command == 'stop':
+            if args.name != None:
+                virtcli.VirtHost.connect()
+                virtcli.VirtHost.stop_storage_pool(args.name)
+            else:
+                print("[-] Name of the pool not provided [-]")
+
+
+    # Handling Templates
+    
+    if args.command == 'template':
+        if args.sub_command == 'list':
+            temp = virtcli.Templates.get_templates()
+            t = PrettyTable(['Name', 'OS', 'Version'])
+            for template in temp:
+                t.add_row([template['name'], template['os'], template['version']])
+            print(t)
+
+        if args.sub_command == 'add':
+            template = {}
+            template['name'] = raw_input('Name: ')
+            template['os'] = raw_input('OS: ')
+            template['version'] = raw_input('Version: ')
+            template['iso'] = raw_input('ISO Url: ')
+            virtcli.Templates.add_template(template)
+
+        if args.sub_command == 'delete':
+            if args.name:
+                virtcli.Templates.delete_template(args.name)
+
+    # Handling Plans
+    if args.command == 'plan':
+        if args.sub_command == 'list':
+            plans = virtcli.Plans.get_plans()
+            t = PrettyTable(['Name', 'RAM', 'vCPU', 'Disk Size'])
+            for plan in plans:
+                t.add_row([plan['name'], plan['ram'], plan['vcpu'], plan['diskSize']])
+            print(t)
+        
+        if args.sub_command == 'add':
+            plan = {}
+            plan['name'] = raw_input('Name: ')
+            plan['ram'] = raw_input('RAM memory: ')
+            plan['vcpu'] = raw_input('vCPU: ')
+            plan['diskSize'] = raw_input('Disk size(GB): ')
+            virtcli.Plans.add_plan(plan)
+
+        if args.sub_command == 'delete':
+            if args.name:
+                virtcli.Plans.delete_plan(args.name)
+
+    # Handling Domains
+    if args.command == 'domain':
+        if args.sub_command == 'create':
+            if args.template and args.name:
+                virtcli.VirtHost.connect()
+                plan = virtcli.Plans.get_plan_by_name(args.plan)
+                
+                params = {}
+                params['name'] = args.name
+                params['ram'] = plan['ram']
+                params['vcpu'] = plan['vcpu']
+                params['diskSize'] = plan['diskSize']
+
+                print('[+] Creating new domain {} from {} template. [+]'.format(args.name, args.template))
+                new_domain = virtcli.VirtHost.create_domain_from_template(args.template ,params)
+                if new_domain is not None:
+                    vm = VirtDomain(domain=new_domain)
+                    new_domain_ip = vm.get_ip(virtcli.VirtHost.conn)
+                    print("[+] New domain created! Name: {}, IP: {} [+]".format(args.name, new_domain_ip))
+                else:
+                    print("[-] Failed! New domain failed to create [-]")
+            else:
+                print("[-] You must set name(-n) and template(-t) for a new domain. [-]")
+        
+        if args.sub_command == 'clone':
+            if args.template and args.name:
+                virtcli.VirtHost.connect()
+                
+                params = {}
+                params['name'] = args.name
+
+                print('[+] Cloning {} domain into {} new domain. [+]'.format(args.template, args.name)) 
+                cloned_domain = virtcli.VirtHost.clone_domain(args.template, params)
+                if cloned_domain is not None:
+                    vm = VirtDomain(domain=cloned_domain)
+                    cloned_domain_ip = vm.get_ip(virtcli.VirtHost.conn)
+                    print('[+] Domain cloned successfuly! Name: {}, IP address: {} [+]'.format(args.name, cloned_domain_ip))
+                else:
+                    print("[-] Failed! Cloning of the domain failed! [-]")
+            else:
+                print("[-] You must set name(-n) and template(-t) for a new domain. [-]")
+
+        if args.sub_command == 'delete':
+            if args.name:
+                virtcli.VirtHost.connect()
+                print("[+] Deleting domain {}. [+]".format(args.name))
+                virtcli.VirtHost.delete_domain(args.name)
+            else:
+                print("[-] You must set name(-n) for deletion. [-]")
+ 
+        if args.sub_command == 'info':
+            if args.name:
+                virtcli.VirtHost.connect()
+                print("[+] Getting domain info. [+]")
+                domain = VirtDomain(domain=virtcli.VirtHost.get_domain_object_by_name(args.name))
+                domain_info = json.loads(domain.get_info(virtcli.VirtHost.conn))
+                domain_disks = domain.get_disks()
+                t = PrettyTable(['Name','UUID', 'RAM', 'vCPU', 'Disk/Size', 'IP', 'State'])
+                t.add_row([domain_info['name'], domain_info['uuid'], "{}".format(pretty_mem(domain_info['ram'])), domain_info['vcpu'],
+                    ["Name: {} / Size: {}".format(disk.name(), pretty_bytes(disk.info()[1])) for disk in domain_disks],
+                                                    domain_info['ip'], domain_info['state']])
+                print(t)
+            else:
+                print("[-] You must set name(-n). [-]")
+
+        if args.sub_command == 'list':
+            get_connection()
+            domains = json.loads(virtcli.VirtHost.get_all_domains())
+            t = PrettyTable(['Name', 'UUID', 'State'])
+            for domain in domains:
+                t.add_row([domain['name'], domain['uuid'], "Running" if domain['state'] else "Stopped"])
+            print(t)
+
+        if args.sub_command == 'start':
+            virtcli.VirtHost.connect()
+            if args.name:
+                domain = virtcli.VirtHost.get_domain_object_by_name(args.name)
+                VirtDomain(domain=domain).start_domain()
+
+        if args.sub_command == 'stop':
+            virtcli.VirtHost.connect()
+            if args.name:
+                domain = virtcli.VirtHost.get_domain_object_by_name(args.name)
+                VirtDomain(domain=domain).stop_domain()
+
+        if args.sub_command == 'reboot':
+            virtcli.VirtHost.connect()
+            if args.name:
+                domain = virtcli.VirtHost.get_domain_object_by_name(args.name)
+                VirtDomain(domain=domain).reboot_domain()
+
+    if args.command == 'disk':
+        virtcli.VirtHost.connect()
+        if args.sub_command == 'add':
+            if args.name and args.size:
+                virtcli.VirtHost.add_disk(args.name, args.size, pool=args.pool)
+
+if __name__ == '__main__':
+    main()
