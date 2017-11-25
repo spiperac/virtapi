@@ -15,7 +15,6 @@ from virtapi.api import VirtAPI
 from virtapi.settings import SETTINGS, LOGO
 from virtapi.utilities import generate_ssh_key, create_config, pretty_mem, pretty_bytes
 
-# Registring an VirtAPI object
 virtcli = VirtAPI()
     
 def get_connection():
