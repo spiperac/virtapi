@@ -43,5 +43,5 @@ Requirements for development are in requirements.txt file inside package.
 Contact
 -----
 
-You can find me on twitter @badarg_
+You can find me on twitter @0xbadarg
 or you can hit me an email at spiperac@denkei.org
