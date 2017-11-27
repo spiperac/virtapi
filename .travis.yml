@@ -1,0 +1,17 @@
+language: python
+sudo: true
+
+python:
+  - "2.7"
+
+# before_install
+before_install:
+  - apt install libvirt openssl libssl-dev
+
+# command to install dependencies
+install: 
+  - pip install -r virtapi/requirements.txt 
+
+# run tests
+script: 
+  - python vatool.py -h
