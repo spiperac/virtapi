@@ -15,4 +15,4 @@ install:
 
 # run tests
 script: 
-  - python vatool.py -h
+  - python vatool -h
