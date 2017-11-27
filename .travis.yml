@@ -7,11 +7,11 @@ python:
 # before_install
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install libvirt-bin openssl libssl-dev -y
+  - sudo apt-get install libvirt-bin libvirt-dev openssl libssl-dev -y
 
 # command to install dependencies
 install: 
-  - pip install -r virtapi/requirements.txt 
+  - sudo pip install -r virtapi/requirements.txt 
 
 # run tests
 script: 
