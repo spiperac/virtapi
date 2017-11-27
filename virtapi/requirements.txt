@@ -2,7 +2,7 @@ libvirt-python
 xmltodict==0.10.1
 pyyaml==3.12
 requests==2.13.0
-prettytable
+prettytable==0.7.2
 lxml
 tqdm
 paramiko
