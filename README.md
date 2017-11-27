@@ -1,10 +1,30 @@
-VirtAPI
+VirtAPI [![Build Status](https://travis-ci.org/spiperac/virtapi.svg?branch=master)](https://travis-ci.org/spiperac/virtapi)
 -----
 
 
 VirtAPI is awrapper and CLI tool(vatool) for automation of KVM/Libvirt machines.
 It can be used to create/delete/{start,stop,restart}/clone/migrate virtual machines(domains) on local/remote KVM servers.
 * It's also working in nested envinroments, you can try it by creating VM inside digitalocean droplet for example."
+
+Instalation
+-----
+
+You will need few more dependencies before installing actual virtapi package.
+I'll give an example for Ubuntu here:
+
+  sudo apt install libvirt-bin libvirt-dev openssl libssl-dev -y
+
+After dependencies are satistfied, you can then install package from this reposutiry by running:
+
+  sudo python setup.py install
+
+Or by installing it directly from PyPI ( for stable versions go with this):
+
+  sudo pip install virtapi
+
+
+Features & TODO
+-----
 
 Futures:
 - Connect to the KVM local or remote host ( get host data/info/metrics)
