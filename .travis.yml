@@ -7,7 +7,7 @@ python:
 # before_install
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install libvirt openssl libssl-dev -y
+  - sudo apt-get install libvirt-bin openssl libssl-dev -y
 
 # command to install dependencies
 install: 
