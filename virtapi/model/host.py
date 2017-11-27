@@ -53,7 +53,7 @@ class Hosts(object):
             except (BadHostKeyException, AuthenticationException, SSHException, socket.error) as e:
                 print('[-] Unable to login with given credentials, trying with standard id_rsa key location. [-]')
                 host = self.get_active()
-                ssh_copy_id_new_key('/Users/spiperac/.ssh/id_rsa', host['connection'], host['username'], host['password'], get_public_key())
+                ssh_copy_id_new_key('~/.ssh/id_rsa', host['connection'], host['username'], host['password'], get_public_key())
 
     def save_hosts(self):
         '''
