@@ -54,7 +54,7 @@ Demo
 Development
 -----
 
-There are always things to be fixed or added, or simply forgoten things. So any suggestions/pull requests/issues are welcome, scince i'm developing this
+There are always things to be fixed or added, or simply forgoten things. So any suggestions/pull requests/issues are welcome, since i'm developing this
 in my free time.
 
 Requirements for development are in requirements.txt file inside package.
