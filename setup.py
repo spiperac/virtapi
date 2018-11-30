@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='virtapi',
-      version='1.3.4',
+      version='1.3.5',
       description='VirtAPI is powerful libvirt/kvm wrapper with plugable API and bonus CLI tool out of the box.',
       url='http://github.com/spiperac/virtapi',
       author='Strahinja Piperac',
@@ -13,11 +13,11 @@ setup(name='virtapi',
       install_requires=[
 	'libvirt-python',
 	'lxml==4.1.0',
-	'paramiko==2.2.1',
+	'paramiko>=2.2.4',
 	'prettytable==0.7.2',
 	'xmltodict==0.10.1',
 	'pyyaml==3.12',
-	'requests==2.13.0',
+	'requests>=2.20.0',
 	'tqdm==4.19.4',
       ],
       zip_safe=False)
