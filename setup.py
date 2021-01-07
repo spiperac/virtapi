@@ -12,7 +12,7 @@ setup(name='virtapi',
       scripts=['vatool'],
       install_requires=[
 	'libvirt-python',
-	'lxml==4.1.0',
+	'lxml==4.6.2',
 	'paramiko>=2.2.4',
 	'prettytable==0.7.2',
 	'xmltodict==0.10.1',
